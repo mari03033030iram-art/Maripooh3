@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Daily Plan</title>
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --card:#fff;
+      --text:#171717;
+      --muted:#777;
+      --line:#e8e8e8;
+      --soft:#f0f1f3;
+      --dark:#222;
+      --ok:#e9f7ee;
+      --warn:#fff5dc;
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:820px;margin:auto;padding:18px 14px 100px}
+    h1{font-size:26px;margin:6px 2px 2px}
+    .sub{color:var(--muted);font-size:13px;margin:0 2px 18px}
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:16px;
+      margin:12px 0;
+      box-shadow:0 2px 12px rgba(0,0,0,.04);
+    }
+    .card h2{font-size:18px;margin:0 0 12px}
+    .row-between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .pill{font-size:12px;padding:5px 9px;border-radius:999px;background:var(--soft);color:#555;font-weight:700}
+    .tabs{display:flex;gap:7px;overflow:auto;padding-bottom:3px;margin-bottom:12px}
+    .tab{border:0;background:#eee;border-radius:999px;padding:9px 14px;font-size:14px;font-weight:700;white-space:nowrap;color:#555}
+    .tab.active{background:#222;color:#fff}
+    .period{
+      display:grid;
+      grid-template-columns:52px 1fr;
+      gap:10px;
+      padding:10px 0;
+      border-bottom:1px solid var(--line);
+      align-items:center;
+    }
+    .period:last-child{border-bottom:none}
+    .num{
+      width:42px;height:42px;border-radius:13px;background:#f3f3f3;
+      display:flex;align-items:center;justify-content:center;font-weight:800
+    }
+    .subject{font-weight:700}
+    .empty{color:#aaa;font-weight:400}
+    .task{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:10px;
+      align-items:start;
+      padding:12px 0;
+      border-bottom:1px solid var(--line);
+    }
+    .task:last-child{border-bottom:none}
+    .task input[type="checkbox"]{width:22px;height:22px;margin-top:2px}
+    .task-title{font-weight:700;line-height:1.35}
+    .task-meta{font-size:12px;color:var(--muted);margin-top:3px}
+    .approved{background:var(--ok);padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+    .pending{background:var(--warn);padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+    .editor-row{
+      display:grid;
+      grid-template-columns:52px 1fr;
+      gap:10px;align-items:center;margin:9px 0
+    }
+    input[type="text"], select{
+      width:100%;border:1px solid #ddd;border-radius:12px;padding:12px;font-size:16px;background:#fff
+    }
+    .task-edit{
+      display:grid;
+      grid-template-columns:1fr 120px;
+      gap:8px;
+      margin:8px 0
+    }
+    button{
+      border:0;border-radius:13px;padding:11px 13px;font-weight:700;font-size:14px
+    }
+    .primary{width:100%;background:#222;color:#fff;margin-top:10px}
+    .secondary{width:100%;background:#eee;color:#333;margin-top:8px}
+    .mini{background:#eee;color:#333;padding:7px 10px;font-size:12px}
+    .danger{background:#f5eeee;color:#7b3131}
+    .add-row{display:grid;grid-template-columns:1fr 120px;gap:8px;margin-top:10px}
+    .section-label{font-size:13px;color:#666;font-weight:800;margin:15px 0 8px}
+    .footer{
+      position:fixed;left:0;right:0;bottom:0;
+      background:rgba(255,255,255,.94);
+      backdrop-filter:blur(12px);
+      border-top:1px solid #e8e8e8;
+      padding:10px 14px max(10px,env(safe-area-inset-bottom))
+    }
+    .footer-inner{max-width:820px;margin:auto;display:flex;gap:8px}
+    .navbtn{flex:1;background:#f0f0f0;color:#333}
+    .navbtn.active{background:#222;color:#fff}
+    .hidden{display:none}
+    .hint{font-size:12px;color:#888;line-height:1.6;margin-top:10px}
+    .approval-box{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .approve-btn{background:#eee}
+    .approve-btn.active{background:#222;color:#fff}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Daily Plan</h1>
+  <p class="sub">時間割・宿題・毎日のやることをひとつに。</p>
+
+  <section id="todayView">
+    <div class="card">
+      <div class="row-between">
+        <h2 id="todayTitle">今日</h2>
+        <span class="pill" id="todayPill"></span>
+      </div>
+      <div id="todaySchedule"></div>
+    </div>
+
+    <div class="card">
+      <div class="row-between">
+        <h2>今日のやること</h2>
+        <span class="pill" id="taskCount"></span>
+      </div>
+      <div id="todayTasks"></div>
+    </div>
+  </section>
+
+  <section id="weekView" class="hidden">
+    <div class="card">
+      <h2>週間時間割</h2>
+      <div class="tabs" id="weekTabs"></div>
+      <div id="weekSchedule"></div>
+    </div>
+    <div class="card">
+      <h2>曜日ごとの基本タスク</h2>
+      <div class="tabs" id="weekTaskTabs"></div>
+      <div id="weekTasks"></div>
+    </div>
+  </section>
+
+  <section id="editView" class="hidden">
+    <div class="card">
+      <h2>時間割を編集</h2>
+      <div class="tabs" id="editTabs"></div>
+      <div id="scheduleEditor"></div>
+      <button class="primary" id="saveScheduleBtn">時間割を保存</button>
+    </div>
+
+    <div class="card">
+      <div class="row-between">
+        <h2>時間割の変更履歴</h2>
+        <button class="mini danger" id="clearHistoryBtn">履歴を削除</button>
+      </div>
+      <div class="tabs" id="historyTabs"></div>
+      <div id="historyList"></div>
+      <p class="hint">時間割を保存するたび、変更前の内容を日時つきで残します。</p>
+    </div>
+
+    <div class="card">
+      <h2>基本タスクを編集</h2>
+      <div class="tabs" id="taskEditTabs"></div>
+      <div id="taskEditor"></div>
+
+      <div class="add-row">
+        <input id="newTaskText" type="text" placeholder="例：Math homework">
+        <select id="newTaskType">
+          <option value="宿題">宿題</option>
+          <option value="学習">学習</option>
+          <option value="持ち物">持ち物</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <button class="secondary" id="addTaskBtn">＋ タスクを追加</button>
+      <p class="hint">基本タスクは曜日ごとに自動で「今日のやること」に出ます。</p>
+    </div>
+  </section>
+</div>
+
+<div class="footer">
+  <div class="footer-inner">
+    <button class="navbtn active" id="todayBtn">今日</button>
+    <button class="navbtn" id="weekBtn">週間</button>
+    <button class="navbtn" id="editBtn">編集</button>
+  </div>
+</div>
+
+<script>
+const DAYS = [
+  {key:"mon", label:"月", js:1},
+  {key:"tue", label:"火", js:2},
+  {key:"wed", label:"水", js:3},
+  {key:"thu", label:"木", js:4},
+  {key:"fri", label:"金", js:5}
+];
+const PERIODS = 8;
+const STORAGE_KEY = "daily_plan_v2";
+const todayKey = new Date().toISOString().slice(0,10);
+
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+if(!state.schedule) state.schedule = {};
+if(!state.baseTasks) state.baseTasks = {};
+if(!state.daily) state.daily = {};
+if(!state.scheduleHistory) state.scheduleHistory = {};
+for(const d of DAYS){
+  if(!Array.isArray(state.schedule[d.key])) state.schedule[d.key] = Array(PERIODS).fill("");
+  if(!Array.isArray(state.baseTasks[d.key])) state.baseTasks[d.key] = [];
+  if(!Array.isArray(state.scheduleHistory[d.key])) state.scheduleHistory[d.key] = [];
+}
+if(!state.daily[todayKey]) state.daily[todayKey] = {done:{}, approvals:{}};
+
+let selectedWeekDay = "mon";
+let selectedEditDay = "mon";
+let selectedTaskDay = "mon";
+let selectedHistoryDay = "mon";
+
+function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function esc(str){
+  return String(str ?? "").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+function actualToday(){
+  const js = new Date().getDay();
+  return DAYS.find(d=>d.js===js) || null;
+}
+function scheduleHTML(items){
+  return items.map((s,i)=>`
+    <div class="period">
+      <div class="num">${i+1}</div>
+      <div class="subject ${s?"":"empty"}">${esc(s) || "未登録"}</div>
+    </div>`).join("");
+}
+function tabsHTML(selected, fn){
+  return DAYS.map(d=>`<button class="tab ${d.key===selected?"active":""}" onclick="${fn}('${d.key}')">${d.label}曜日</button>`).join("");
+}
+function renderToday(){
+  const td = actualToday();
+  document.getElementById("todayPill").textContent = td ? `${td.label}曜日` : "週末";
+  document.getElementById("todaySchedule").innerHTML = td ? scheduleHTML(state.schedule[td.key]) :
+    `<div class="empty" style="padding:16px 0">今日は平日の時間割はありません。</div>`;
+
+  const tasks = td ? state.baseTasks[td.key] : [];
+  const daily = state.daily[todayKey];
+  document.getElementById("taskCount").textContent = `${tasks.filter((_,i)=>daily.done[i]).length}/${tasks.length}`;
+
+  if(!tasks.length){
+    document.getElementById("todayTasks").innerHTML = `<div class="empty" style="padding:14px 0">今日のタスクはありません。</div>`;
+    return;
+  }
+
+  document.getElementById("todayTasks").innerHTML = tasks.map((t,i)=>{
+    const done = !!daily.done[i];
+    const approval = daily.approvals[i] || "";
+    return `
+      <div class="task">
+        <input type="checkbox" ${done?"checked":""} onchange="toggleDone(${i},this.checked)">
+        <div>
+          <div class="task-title">${esc(t.text)}</div>
+          <div class="task-meta">${esc(t.type || "その他")}</div>
+          <div class="approval-box">
+            <button class="mini approve-btn ${approval==="Mari"?"active":""}" onclick="approveTask(${i},'Mari')">Mari</button>
+            <button class="mini approve-btn ${approval==="Naoki"?"active":""}" onclick="approveTask(${i},'Naoki')">Naoki</button>
+            <button class="mini approve-btn ${approval===""?"active":""}" onclick="approveTask(${i},'')">未確認</button>
+          </div>
+        </div>
+        <div class="${approval?"approved":"pending"}">${approval ? approval+"確認" : "未確認"}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+window.toggleDone = function(i,val){
+  state.daily[todayKey].done[i] = val;
+  persist(); renderToday();
+};
+window.approveTask = function(i,name){
+  state.daily[todayKey].approvals[i] = name;
+  persist(); renderToday();
+};
+
+function renderWeek(){
+  document.getElementById("weekTabs").innerHTML = tabsHTML(selectedWeekDay,"selectWeek");
+  document.getElementById("weekSchedule").innerHTML = scheduleHTML(state.schedule[selectedWeekDay]);
+
+  document.getElementById("weekTaskTabs").innerHTML = tabsHTML(selectedWeekDay,"selectWeek");
+  const list = state.baseTasks[selectedWeekDay];
+  document.getElementById("weekTasks").innerHTML = list.length ? list.map(t=>`
+    <div class="task">
+      <div></div>
+      <div>
+        <div class="task-title">${esc(t.text)}</div>
+        <div class="task-meta">${esc(t.type)}</div>
+      </div>
+      <div></div>
+    </div>`).join("") : `<div class="empty" style="padding:14px 0">未登録</div>`;
+}
+window.selectWeek = function(k){ selectedWeekDay=k; renderWeek(); };
+
+function renderScheduleEditor(){
+  document.getElementById("editTabs").innerHTML = tabsHTML(selectedEditDay,"selectEdit");
+  document.getElementById("scheduleEditor").innerHTML = state.schedule[selectedEditDay].map((s,i)=>`
+    <div class="editor-row">
+      <div class="num">${i+1}</div>
+      <input id="sch${i}" type="text" value="${esc(s)}" placeholder="教科名">
+    </div>
+  `).join("");
+}
+window.selectEdit = function(k){ selectedEditDay=k; renderScheduleEditor(); };
+
+
+function formatStamp(iso){
+  try{
+    return new Date(iso).toLocaleString("ja-JP",{
+      year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"
+    });
+  }catch(e){ return iso; }
+}
+function renderHistory(){
+  document.getElementById("historyTabs").innerHTML = tabsHTML(selectedHistoryDay,"selectHistoryDay");
+  const list = state.scheduleHistory[selectedHistoryDay] || [];
+  const box = document.getElementById("historyList");
+  if(!list.length){
+    box.innerHTML = `<div class="empty" style="padding:14px 0">変更履歴はまだありません。</div>`;
+    return;
+  }
+  box.innerHTML = list.slice().reverse().map((h,revIndex)=>{
+    const idx = list.length - 1 - revIndex;
+    return `
+      <div class="card" style="background:#fafafa;box-shadow:none;border:1px solid #eee;margin:10px 0">
+        <div class="row-between">
+          <div>
+            <div style="font-weight:800">${formatStamp(h.changedAt)}</div>
+            <div class="task-meta">変更前の時間割</div>
+          </div>
+          <button class="mini" onclick="restoreHistory(${idx})">この予定に戻す</button>
+        </div>
+        <div style="margin-top:8px">${scheduleHTML(h.schedule)}</div>
+      </div>`;
+  }).join("");
+}
+window.selectHistoryDay = function(k){
+  selectedHistoryDay = k;
+  renderHistory();
+};
+window.restoreHistory = function(i){
+  const hist = state.scheduleHistory[selectedHistoryDay][i];
+  if(!hist) return;
+  const current = [...state.schedule[selectedHistoryDay]];
+  state.scheduleHistory[selectedHistoryDay].push({
+    changedAt:new Date().toISOString(),
+    schedule:current,
+    note:"復元前の予定"
+  });
+  state.schedule[selectedHistoryDay] = [...hist.schedule];
+  persist();
+  renderScheduleEditor(); renderToday(); renderWeek(); renderHistory();
+};
+
+function renderTaskEditor(){
+  document.getElementById("taskEditTabs").innerHTML = tabsHTML(selectedTaskDay,"selectTaskDay");
+  const list = state.baseTasks[selectedTaskDay];
+  document.getElementById("taskEditor").innerHTML = list.length ? list.map((t,i)=>`
+    <div class="task-edit">
+      <input id="taskText${i}" type="text" value="${esc(t.text)}">
+      <select id="taskType${i}">
+        ${["宿題","学習","持ち物","その他"].map(v=>`<option value="${v}" ${t.type===v?"selected":""}>${v}</option>`).join("")}
+      </select>
+      <button class="mini" onclick="saveTask(${i})">保存</button>
+      <button class="mini danger" onclick="deleteTask(${i})">削除</button>
+    </div>
+  `).join("") : `<div class="empty" style="padding:10px 0">タスクはまだありません。</div>`;
+}
+window.selectTaskDay = function(k){ selectedTaskDay=k; renderTaskEditor(); };
+window.saveTask = function(i){
+  state.baseTasks[selectedTaskDay][i].text = document.getElementById("taskText"+i).value.trim();
+  state.baseTasks[selectedTaskDay][i].type = document.getElementById("taskType"+i).value;
+  persist(); renderTaskEditor(); renderToday(); renderWeek();
+};
+window.deleteTask = function(i){
+  state.baseTasks[selectedTaskDay].splice(i,1);
+  persist(); renderTaskEditor(); renderToday(); renderWeek();
+};
+
+document.getElementById("saveScheduleBtn").addEventListener("click",()=>{
+  const nextSchedule = Array.from({length:PERIODS},(_,i)=>document.getElementById("sch"+i).value.trim());
+  const prevSchedule = [...state.schedule[selectedEditDay]];
+  const changed = JSON.stringify(prevSchedule) !== JSON.stringify(nextSchedule);
+
+  if(changed){
+    state.scheduleHistory[selectedEditDay].push({
+      changedAt:new Date().toISOString(),
+      schedule:prevSchedule
+    });
+    if(state.scheduleHistory[selectedEditDay].length > 30){
+      state.scheduleHistory[selectedEditDay] = state.scheduleHistory[selectedEditDay].slice(-30);
+    }
+  }
+
+  state.schedule[selectedEditDay] = nextSchedule;
+  persist(); renderScheduleEditor(); renderToday(); renderWeek(); renderHistory();
+  alert(changed ? "時間割を保存し、変更前の予定を履歴に残しました" : "時間割を保存しました");
+});
+
+document.getElementById("addTaskBtn").addEventListener("click",()=>{
+  const text = document.getElementById("newTaskText").value.trim();
+  const type = document.getElementById("newTaskType").value;
+  if(!text) return alert("タスク名を入力してください");
+  state.baseTasks[selectedTaskDay].push({text,type});
+  document.getElementById("newTaskText").value = "";
+  persist(); renderTaskEditor(); renderToday(); renderWeek();
+});
+
+document.getElementById("clearHistoryBtn").addEventListener("click",()=>{
+  if(confirm("選択中の曜日の変更履歴をすべて削除しますか？")){
+    state.scheduleHistory[selectedHistoryDay] = [];
+    persist();
+    renderHistory();
+  }
+});
+
+function show(view){
+  for(const id of ["todayView","weekView","editView"]) document.getElementById(id).classList.add("hidden");
+  document.getElementById(view+"View").classList.remove("hidden");
+  document.getElementById("todayBtn").classList.toggle("active",view==="today");
+  document.getElementById("weekBtn").classList.toggle("active",view==="week");
+  document.getElementById("editBtn").classList.toggle("active",view==="edit");
+  if(view==="today") renderToday();
+  if(view==="week") renderWeek();
+  if(view==="edit"){renderScheduleEditor();renderHistory();renderTaskEditor();}
+}
+document.getElementById("todayBtn").onclick=()=>show("today");
+document.getElementById("weekBtn").onclick=()=>show("week");
+document.getElementById("editBtn").onclick=()=>show("edit");
+
+renderToday();
+</script>
+</body>
+</html>
